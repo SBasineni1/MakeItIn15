@@ -1,3 +1,5 @@
 data/raw/
 __pycache__/
 .roster_cookie
+network/.venv/
+network/cache/

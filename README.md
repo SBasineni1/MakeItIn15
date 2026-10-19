@@ -67,3 +67,30 @@ reference term, most to least specific), or NULL.
 - `meeting_days` — one row per (meeting, day) for "what's on Tuesday" queries
 - `sections`, `courses`, `buildings`
 - `meeting_locations` — view joining meetings to course codes and coordinates
+
+## Walking network
+
+`network/` builds a walking graph of campus from OpenStreetMap, with USGS 1 m
+elevation, and an editor for drawing paths OSM is missing.
+
+```sh
+python3 -m venv network/.venv
+network/.venv/bin/pip install -r network/requirements.txt
+network/.venv/bin/python network/build_graph.py FA26     # -> network/cache/ (git-ignored)
+network/.venv/bin/python network/editor/serve.py FA26    # editor at http://localhost:8015
+```
+
+In the editor, **Draw** (or D) traces a path over aerial imagery: click to place
+points, which snap onto existing paths, and double-click or Enter to finish.
+Click a drawn path to select it; drag its points to move them, drag a small
+midpoint to add one, Backspace deletes it. Every change saves to
+`network/manual_paths.geojson` (commit it to share them) and reruns
+`build_graph.py`, so the graph includes the path a few seconds later as edges
+with `source = "manual"`. A drawn path's ends join the nearest path within
+15 m; a red dot marks an end that won't.
+
+The map is public, view-only, at https://sbasineni1.github.io/MakeItIn15/
+(GitHub Pages serves `docs/`). **Publish** in the editor, or
+`network/.venv/bin/python network/publish.py FA26 --push`, copies the current
+graph and drawn paths into `docs/`, commits only those, and pushes. If the push
+is rejected because a teammate published first, `git pull` and publish again.
