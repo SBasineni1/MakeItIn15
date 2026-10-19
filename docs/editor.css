@@ -1,0 +1,20 @@
+:root {
+  /* Map strokes sit on aerial imagery, so they stay bright. */
+  --m-flat: #f4f4ee; --m-mid: #ffb020; --m-high: #ff4d3d; --m-steps: #c58cff; --m-drawn: #00e5c8;
+  font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+html, body { height: 100%; margin: 0; background: #2a2f2d; }
+#map { position: absolute; inset: 0; }
+#map.drawing, #map.drawing .leaflet-interactive { cursor: crosshair; }
+.bar { position: absolute; top: 10px; left: 56px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
+.bar button { font: 600 14px/1 system-ui, sans-serif; padding: 9px 16px; border-radius: 6px; cursor: pointer;
+  border: 2px solid rgba(0,0,0,.25); background: #fff; color: #111; }
+.bar button[aria-pressed="true"] { background: var(--m-drawn); }
+.bar button[hidden] { display: none; }
+.bar button:disabled { opacity: .6; cursor: progress; }
+.bar button:focus-visible { outline: 2px solid #2b8cff; outline-offset: 2px; }
+#status { color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
+#status:empty { display: none; }
+#status.warn { color: #ff8a80; }
+.vh { background: #fff; border: 2px solid #111; border-radius: 50%; }
+.vh.mid { background: rgba(255,255,255,.65); border-width: 1px; }
