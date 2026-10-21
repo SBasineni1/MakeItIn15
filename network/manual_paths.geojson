@@ -18,5 +18,6 @@
 {"geometry": {"coordinates": [[-76.4815057, 42.4498141], [-76.481505, 42.449603]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmviafoqs8wmm"}, "type": "Feature"},
 {"geometry": {"coordinates": [[-76.482145, 42.448966], [-76.481771, 42.448983], [-76.4817446, 42.4487338]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmviagh600rnr"}, "type": "Feature"},
 {"geometry": {"coordinates": [[-76.4817623, 42.4489006], [-76.481426, 42.4489101], [-76.4814258, 42.4487386]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmviaglm6on0j"}, "type": "Feature"},
-{"geometry": {"coordinates": [[-76.482164, 42.4493], [-76.4818736, 42.4493131], [-76.4818812, 42.4494251], [-76.4813577, 42.4494419], [-76.4813771, 42.4496106]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmviagujsrd4l"}, "type": "Feature"}
+{"geometry": {"coordinates": [[-76.482164, 42.4493], [-76.4818736, 42.4493131], [-76.4818812, 42.4494251], [-76.4813577, 42.4494419], [-76.4813771, 42.4496106]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmviagujsrd4l"}, "type": "Feature"},
+{"geometry": {"coordinates": [[-76.4818736, 42.4493131], [-76.4818584, 42.448979]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmviagxn91nle"}, "type": "Feature"}
 ]}
