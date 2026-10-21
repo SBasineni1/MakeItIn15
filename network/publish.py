@@ -2,10 +2,13 @@
 
 Usage: network/.venv/bin/python network/publish.py FA26 [--push]
 
-Rebuilds the graph first if drawn paths changed since the last build. With
---push, commits docs/ and network/manual_paths.geojson (nothing else) and
-pushes, so the site at https://<user>.github.io/MakeItIn15/ updates in a
-minute or two.
+Rebuilds the graph first if drawn paths changed since the last build.
+.github/workflows/build-graph.yml runs this (without --push) whenever
+network/manual_paths.geojson changes on main and commits docs/, so the site at
+https://<user>.github.io/MakeItIn15/ updates a few minutes after a push.
+
+With --push, it skips docs/ and commits and pushes only the drawn paths, so
+GitHub Actions does the rebuild and local docs/ never conflicts with its commits.
 """
 import argparse
 import shutil
@@ -31,7 +34,7 @@ def git(*args):
     return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True)
 
 
-def main(term, push):
+def copy(term):
     if not GRAPH.exists() or PATHS.stat().st_mtime > GRAPH.stat().st_mtime:
         print("drawn paths changed since the last build; rebuilding")
         subprocess.run([sys.executable, str(NETWORK / "build_graph.py"), term], check=True)
@@ -40,27 +43,30 @@ def main(term, push):
         shutil.copyfile(src, SITE / name)
     (SITE / ".nojekyll").touch()  # serve files as they are, without Jekyll
     print(f"copied the map to {SITE.relative_to(ROOT)}/")
-    if not push:
-        return
 
-    tracked = ["docs", str(PATHS.relative_to(ROOT))]
-    git("add", "--", *tracked)
-    if git("diff", "--cached", "--quiet", "--", *tracked).returncode == 0:
+
+def push():
+    tracked = str(PATHS.relative_to(ROOT))
+    git("add", "--", tracked)
+    if git("diff", "--cached", "--quiet", "--", tracked).returncode == 0:
         print("Nothing new to publish")
         return
     n = PATHS.read_text().count('"LineString"')
-    commit = git("commit", "-m", f"Update walking graph ({n} drawn path{'s' if n != 1 else ''})", "--", *tracked)
+    commit = git("commit", "-m", f"Update drawn paths ({n} path{'s' if n != 1 else ''})", "--", tracked)
     if commit.returncode:
         sys.exit(f"git commit failed: {commit.stderr.strip()}")
     pushed = git("push", "origin", "HEAD")
     if pushed.returncode:
         sys.exit(f"Committed but not pushed: {pushed.stderr.strip().splitlines()[-1]} (git pull, then publish again)")
-    print("Published; the site updates in a minute or two")
+    print("Published; GitHub Actions rebuilds the site in a few minutes")
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("roster")
-    ap.add_argument("--push", action="store_true", help="commit docs/ and the drawn paths, then git push")
+    ap.add_argument("--push", action="store_true", help="commit and push only the drawn paths; Actions rebuilds docs/")
     args = ap.parse_args()
-    main(args.roster.upper(), args.push)
+    if args.push:
+        push()
+    else:
+        copy(args.roster.upper())

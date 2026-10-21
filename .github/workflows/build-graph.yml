@@ -1,0 +1,68 @@
+# Rebuilds the walking graph and the Pages copy in docs/ whenever drawn paths
+# (saved from the map on GitHub Pages, or pushed from the local editor) or the
+# code that builds them changes on main.
+name: Build walking graph
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - network/manual_paths.geojson
+      - network/build_graph.py
+      - network/export_web.py
+      - network/publish.py
+      - network/editor/**
+      - data/FA26_meetings.csv
+      - .github/workflows/build-graph.yml
+  workflow_dispatch:
+
+# One build at a time; saves made during a build queue one more, which reads the latest main.
+concurrency:
+  group: build-graph
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: network/requirements.txt
+
+      - run: pip install -r network/requirements.txt
+
+      # The OSM response (osmnx's cache) and the 1 m elevation raster from a local
+      # build, so CI builds the same graph and never waits on Overpass or USGS.
+      - name: Download graph inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p network/cache/osmnx
+          gh release download graph-inputs --pattern dem.tif --dir network/cache
+          gh release download graph-inputs --pattern '*.json' --dir network/cache/osmnx
+
+      - run: python network/publish.py FA26
+
+      - name: Commit docs/
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add docs
+          if git diff --cached --quiet; then echo "docs/ unchanged"; exit 0; fi
+          n=$(grep -c '"LineString"' network/manual_paths.geojson || true)
+          git commit -m "Rebuild walking graph ($n drawn paths)"
+          for i in 1 2 3 4 5; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep $((i * 5))
+          done
+          exit 1

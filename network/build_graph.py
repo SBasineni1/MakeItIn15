@@ -75,7 +75,7 @@ def download_graph(bbox):
         ox.settings.overpass_url = url
         try:
             return ox.graph_from_bbox(bbox, network_type="walk", simplify=False)
-        except ox._errors.ResponseStatusCodeError as e:
+        except (ox._errors.ResponseStatusCodeError, requests.RequestException) as e:
             print(f"{url} failed ({str(e).splitlines()[0]}); trying the next server")
     raise RuntimeError("every Overpass server failed; try again later")
 

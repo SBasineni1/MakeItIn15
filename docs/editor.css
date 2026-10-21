@@ -6,11 +6,19 @@
 html, body { height: 100%; margin: 0; background: #2a2f2d; }
 #map { position: absolute; inset: 0; }
 #map.drawing, #map.drawing .leaflet-interactive { cursor: crosshair; }
-.bar { position: absolute; top: 10px; left: 56px; z-index: 1000; display: flex; gap: 8px; align-items: center; }
+.bar { position: absolute; top: 10px; left: 56px; right: 56px; z-index: 1000; display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; pointer-events: none; }
+.bar > * { pointer-events: auto; }
 .bar button { font: 600 14px/1 system-ui, sans-serif; padding: 9px 16px; border-radius: 6px; cursor: pointer;
   border: 2px solid rgba(0,0,0,.25); background: #fff; color: #111; }
 .bar button[aria-pressed="true"] { background: var(--m-drawn); }
-.bar button[hidden] { display: none; }
+.bar [hidden] { display: none !important; }
+.bar button { white-space: nowrap; }
+.token { display: flex; flex: none; gap: 6px; align-items: center; }
+@media (max-width: 600px) { .token { flex: 1 1 auto; flex-wrap: wrap; min-width: 0; } }
+.token input { font: 14px/1 system-ui, sans-serif; padding: 8px 10px; flex: 0 1 18em; min-width: 8em; border-radius: 6px;
+  border: 2px solid rgba(0,0,0,.25); }
+.token a { white-space: nowrap; color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
 .bar button:disabled { opacity: .6; cursor: progress; }
 .bar button:focus-visible { outline: 2px solid #2b8cff; outline-offset: 2px; }
 #status { color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; }

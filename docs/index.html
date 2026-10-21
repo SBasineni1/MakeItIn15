@@ -11,7 +11,16 @@
 <div id="map"></div>
 <div class="bar">
   <button id="draw" title="Draw a path (D). Click to place points, double-click or Enter to finish, Esc to cancel." hidden>Draw</button>
-  <button id="publish" title="Commit the graph and drawn paths and push them to the GitHub Pages site" hidden>Publish</button>
+  <button id="publish" title="Commit and push the drawn paths; GitHub Actions then rebuilds the graph and the Pages site" hidden>Publish</button>
+  <button id="signin" title="Repo collaborators: sign in with a GitHub token to draw and edit paths" hidden>Sign in to edit</button>
+  <form id="tokenform" class="token" hidden>
+    <input id="token" type="password" placeholder="GitHub token" autocomplete="off" spellcheck="false" aria-label="GitHub token">
+    <button>Sign in</button>
+    <button type="button" id="tokencancel">Cancel</button>
+    <a href="https://github.com/settings/tokens/new?scopes=public_repo&amp;description=MakeItIn15%20map" target="_blank"
+      rel="noopener" title="A classic token with only the public_repo scope. It stays in this browser.">Get a token</a>
+  </form>
+  <button id="signout" title="Forget the GitHub token in this browser" hidden>Sign out</button>
   <span id="status" role="status"></span>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>

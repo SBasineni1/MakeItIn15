@@ -4,9 +4,9 @@ Usage: network/.venv/bin/python network/editor/serve.py [FA26] [--port 8015]
 
 The editor shows the walking graph over aerial imagery. Paths drawn in it are
 saved to network/manual_paths.geojson and build_graph.py reruns after each
-change; its Publish button runs publish.py --push to update the GitHub Pages
-copy. Listens on localhost only, since anyone who can reach it can rewrite
-that file and push.
+change; its Publish button runs publish.py --push, which pushes that file so
+GitHub Actions rebuilds the GitHub Pages copy. Listens on localhost only, since
+anyone who can reach it can rewrite that file and push.
 
 NYS orthoimagery has no tile cache and takes seconds per image, so this server
 fetches each tile once and keeps it in network/cache/tiles/.
