@@ -1,3 +1,4 @@
 {"type":"FeatureCollection","features":[
-{"geometry": {"coordinates": [[-76.48195, 42.444471], [-76.4825678, 42.4444642], [-76.482622, 42.445027]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmvi9kinddzua"}, "type": "Feature"}
+{"geometry": {"coordinates": [[-76.48195, 42.444471], [-76.4825678, 42.4444642], [-76.482622, 42.445027]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmvi9kinddzua"}, "type": "Feature"},
+{"geometry": {"coordinates": [[-76.482549, 42.444256], [-76.4823693, 42.4442564], [-76.4823693, 42.4441574], [-76.482252, 42.444161]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pmvi9kolvv83v"}, "type": "Feature"}
 ]}
