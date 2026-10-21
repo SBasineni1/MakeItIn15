@@ -1,6 +1,7 @@
 {"type":"FeatureCollection","features":[
-{"geometry":{"coordinates":[[-76.48195,42.444471],[-76.4823819,42.4442273],[-76.4824668,42.4444634],[-76.4825678,42.4444549],[-76.482549,42.444256],[-76.482622,42.445027]],"type":"LineString"},"properties":{"created":"2026-10-19","highway":"footway","id":"pmvfq33j1qjpx"},"type":"Feature"},
-{"geometry":{"coordinates":[[-76.4820688,42.4439067],[-76.482069,42.444049],[-76.4824873,42.4440328],[-76.4824765,42.4442555]],"type":"LineString"},"properties":{"created":"2026-10-19","highway":"footway","id":"pmvfq44kt0qsj"},"type":"Feature"},
-{"geometry":{"coordinates":[[-76.4824873,42.4440328],[-76.4830758,42.4440045]],"type":"LineString"},"properties":{"created":"2026-10-19","highway":"footway","id":"pmvfq47vn4ill"},"type":"Feature"},
-{"type":"Feature","properties":{"id":"pzzteammate","highway":"footway","created":"2026-10-21"},"geometry":{"type":"LineString","coordinates":[[-76.4822,42.445],[-76.4817,42.4452]]}}
+{"geometry": {"coordinates": [[-76.48195, 42.444471], [-76.4823819, 42.4442273], [-76.4824668, 42.4444634], [-76.4825678, 42.4444549], [-76.482549, 42.444256], [-76.482622, 42.445027]], "type": "LineString"}, "properties": {"created": "2026-10-19", "highway": "footway", "id": "pmvfq33j1qjpx"}, "type": "Feature"},
+{"geometry": {"coordinates": [[-76.4820688, 42.4439067], [-76.482069, 42.444049], [-76.4824873, 42.4440328], [-76.4824765, 42.4442555]], "type": "LineString"}, "properties": {"created": "2026-10-19", "highway": "footway", "id": "pmvfq44kt0qsj"}, "type": "Feature"},
+{"geometry": {"coordinates": [[-76.4824873, 42.4440328], [-76.4830758, 42.4440045]], "type": "LineString"}, "properties": {"created": "2026-10-19", "highway": "footway", "id": "pmvfq47vn4ill"}, "type": "Feature"},
+{"geometry": {"coordinates": [[-76.4822, 42.445], [-76.4817, 42.4452]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pzzteammate"}, "type": "Feature"},
+{"geometry": {"coordinates": [[-76.48140000000001, 42.445], [-76.4809, 42.4452]], "type": "LineString"}, "properties": {"created": "2026-10-21", "highway": "footway", "id": "pzztest"}, "type": "Feature"}
 ]}
