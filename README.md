@@ -101,8 +101,12 @@ lost. Every bad edit can be reverted from git history.
 When that file changes on `main`, `.github/workflows/build-graph.yml` runs
 `network/publish.py FA26`, which rebuilds the graph and copies it, the map and
 the drawn paths into `docs/`, and commits `docs/`; the site updates a few
-minutes after a save. The workflow caches the OSM download and elevation raster.
-Run it by hand from the repo's Actions tab with **Run workflow**.
+minutes after a save. Run it by hand from the repo's Actions tab with **Run
+workflow**. So it never waits on Overpass or USGS, the workflow downloads the
+OSM response and elevation raster from the `graph-inputs` release instead; after
+a local rebuild with new ones (e.g. a new term's buildings), replace them with
+`gh release upload graph-inputs network/cache/dem.tif network/cache/osmnx/*.json --clobber`
+(delete the old `.json` asset first, since its name changes).
 
 **Publish** in the local editor, or `network/.venv/bin/python network/publish.py
 FA26 --push`, commits and pushes only `network/manual_paths.geojson` and leaves

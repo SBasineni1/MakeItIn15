@@ -41,14 +41,15 @@ jobs:
 
       - run: pip install -r network/requirements.txt
 
-      # The OSM download and the 1 m elevation raster (~90 MB) only change with the
-      # buildings' bounding box, so they are fetched once per meetings CSV.
-      - uses: actions/cache@v4
-        with:
-          path: |
-            network/cache/dem.tif
-            network/cache/osmnx
-          key: graph-inputs-${{ hashFiles('data/FA26_meetings.csv') }}
+      # The OSM response (osmnx's cache) and the 1 m elevation raster from a local
+      # build, so CI builds the same graph and never waits on Overpass or USGS.
+      - name: Download graph inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p network/cache/osmnx
+          gh release download graph-inputs --pattern dem.tif --dir network/cache
+          gh release download graph-inputs --pattern '*.json' --dir network/cache/osmnx
 
       - run: python network/publish.py FA26
 
