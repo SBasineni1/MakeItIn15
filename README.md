@@ -89,8 +89,22 @@ midpoint to add one, Backspace deletes it. Every change saves to
 with `source = "manual"`. A drawn path's ends join the nearest path within
 15 m; a red dot marks an end that won't.
 
-The map is public, view-only, at https://sbasineni1.github.io/MakeItIn15/
-(GitHub Pages serves `docs/`). **Publish** in the editor, or
-`network/.venv/bin/python network/publish.py FA26 --push`, copies the current
-graph and drawn paths into `docs/`, commits only those, and pushes. If the push
-is rejected because a teammate published first, `git pull` and publish again.
+The map is public at https://sbasineni1.github.io/MakeItIn15/ (GitHub Pages
+serves `docs/`). Anyone can view it; repo collaborators can also draw there.
+**Sign in to edit** asks once for a GitHub token: **Get a token** opens a classic
+token with only the `public_repo` scope (fine-grained tokens don't cover
+collaborators on a personal account's repo), which stays in that browser. Each
+change is then committed to `network/manual_paths.geojson` on `main`; if a
+teammate saved in the meantime, the two edits are merged by path, so neither is
+lost. Every bad edit can be reverted from git history.
+
+When that file changes on `main`, `.github/workflows/build-graph.yml` runs
+`network/publish.py FA26`, which rebuilds the graph and copies it, the map and
+the drawn paths into `docs/`, and commits `docs/`; the site updates a few
+minutes after a save. The workflow caches the OSM download and elevation raster.
+Run it by hand from the repo's Actions tab with **Run workflow**.
+
+**Publish** in the local editor, or `network/.venv/bin/python network/publish.py
+FA26 --push`, commits and pushes only `network/manual_paths.geojson` and leaves
+`docs/` to the workflow. Since the map and the workflow commit to `main`,
+`git pull` before drawing locally.

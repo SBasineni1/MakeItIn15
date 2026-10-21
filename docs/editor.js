@@ -2,7 +2,9 @@
 // Path editor: the walking graph over aerial imagery. Drawn paths are saved by
 // serve.py to network/manual_paths.geojson, then build_graph.py reruns so the
 // graph includes them. On GitHub Pages (publish.py copies it to docs/) there is
-// no serve.py, so the map is view-only.
+// no serve.py: the map is view-only until a repo collaborator signs in with a
+// GitHub token, then it commits that file through the GitHub API and
+// .github/workflows/build-graph.yml rebuilds the graph and docs/.
 
 const $ = (id) => document.getElementById(id);
 const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -13,6 +15,9 @@ const SNAP_PX = 12;     // a drawn point this close to a path (on screen) snaps 
 const END_JOIN_M = 15;  // build_graph.py joins a drawn path's ends to paths this close (END_SNAP_M)
 const CELL_M = 25;      // snap index grid
 const LIVE = ["localhost", "127.0.0.1"].includes(location.hostname);  // served by serve.py
+const REPO = "SBasineni1/MakeItIn15", PATHS_FILE = "network/manual_paths.geojson";
+const TOKEN_KEY = "makeitin15.githubToken";
+let editable = LIVE;  // on Pages, once a collaborator signs in
 
 // ---------- map ----------
 const map = L.map("map", { maxZoom: 21, zoomSnap: 0.5 });
@@ -161,7 +166,7 @@ function renderDrawn() {
   for (const f of paths) {
     const on = f.properties.id === selectedId, ll = lls(f);
     const casing = L.polyline(ll, { renderer: R.drawn, color: CASING, weight: on ? 9 : 7, opacity: 0.7, interactive: false }).addTo(drawnLayer);
-    const line = L.polyline(ll, { renderer: R.drawn, color: COLOR.drawn, weight: on ? 6 : 4, interactive: LIVE,
+    const line = L.polyline(ll, { renderer: R.drawn, color: COLOR.drawn, weight: on ? 6 : 4, interactive: editable,
       bubblingMouseEvents: false }).addTo(drawnLayer);
     line.on("click", (ev) => (drawing ? addPoint(ev.latlng) : select(f.properties.id)));
     // A red dot marks an end the graph build will leave unconnected.
@@ -199,17 +204,135 @@ function changed() { save(); renderDrawn(); }
 
 function save() {
   clearTimeout(saveTimer); saving = true; setStatus("Saving…");
-  saveTimer = setTimeout(async () => {
-    try {
-      const r = await fetch("api/paths", { method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "FeatureCollection", features: paths }) });
-      const j = await r.json();
-      if (!r.ok) return setStatus(`Not saved: ${j.error}`, true);
-      pathsModified = j.modified; saving = false; rebuild();
-    } catch (err) { setStatus("Not saved: is serve.py running?", true); }
-  }, 250);
+  // Each GitHub save is a commit and a graph rebuild, so wait for a pause in editing.
+  saveTimer = setTimeout(LIVE ? saveLocal : saveGitHub, LIVE ? 250 : 1500);
+}
+async function saveLocal() {
+  try {
+    const r = await fetch("api/paths", { method: "PUT", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "FeatureCollection", features: paths }) });
+    const j = await r.json();
+    if (!r.ok) return setStatus(`Not saved: ${j.error}`, true);
+    pathsModified = j.modified; saving = false; rebuild();
+  } catch (err) { setStatus("Not saved: is serve.py running?", true); }
 }
 window.addEventListener("beforeunload", (ev) => { if (saving || rebuilding) ev.preventDefault(); });
+
+// ---------- saving to GitHub (Pages) ----------
+const stored = (v) => {  // the token, kept in this browser only
+  try { if (v === undefined) return localStorage.getItem(TOKEN_KEY); if (v) localStorage.setItem(TOKEN_KEY, v); else localStorage.removeItem(TOKEN_KEY); }
+  catch (err) { return null; }
+};
+let gh = null;  // { token, sha, base: the paths as last read from or written to GitHub }
+let ghBusy = false, ghAgain = false;
+
+async function ghFetch(path, opts = {}) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}${path}`, { cache: "no-store", ...opts,
+    headers: { Accept: "application/vnd.github+json", Authorization: `Bearer ${gh.token}` } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.message || r.statusText), { status: r.status });
+  return j;
+}
+const fromB64 = (s) => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, "")), (c) => c.charCodeAt(0)));
+const toB64 = (s) => { let bin = ""; for (const b of new TextEncoder().encode(s)) bin += String.fromCharCode(b); return btoa(bin); };
+
+async function ghRead() {
+  const j = await ghFetch(`/contents/${PATHS_FILE}?ref=main`);
+  return { sha: j.sha, features: JSON.parse(fromB64(j.content)).features };
+}
+
+// The same text serve.py's write_paths writes (Python json.dumps, sort_keys), one path per line.
+const pyJSON = (v) => Array.isArray(v) ? "[" + v.map(pyJSON).join(", ") + "]"
+  : v && typeof v === "object" ? "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ": " + pyJSON(v[k])).join(", ") + "}"
+  : JSON.stringify(v);
+function pathsText(features) {
+  const lines = features.map((f) => pyJSON({ type: "Feature", properties: f.properties || {}, geometry: f.geometry }));
+  return '{"type":"FeatureCollection","features":[\n' + lines.join(",\n") + (lines.length ? "\n" : "") + "]}\n";
+}
+
+const byId = (fs) => new Map(fs.map((f) => [f.properties.id, f]));
+const same = (a, b) => (a && pyJSON(a)) === (b && pyJSON(b));
+// Paths changed here since `base` keep this version (or stay deleted); every other path takes theirs.
+function merge(base, mine, theirs) {
+  const B = byId(base), M = byId(mine), T = byId(theirs);
+  const ids = [...T.keys(), ...[...M.keys()].filter((id) => !T.has(id))];
+  return ids.map((id) => (same(M.get(id), B.get(id)) ? T.get(id) : M.get(id))).filter(Boolean);
+}
+function commitMessage(base, mine) {
+  const B = byId(base), M = byId(mine), n = { add: 0, edit: 0, delete: 0 };
+  for (const [id, f] of M) if (!B.has(id)) n.add++; else if (!same(f, B.get(id))) n.edit++;
+  for (const id of B.keys()) if (!M.has(id)) n.delete++;
+  const parts = Object.entries(n).filter(([, c]) => c).map(([verb, c]) => `${verb} ${c} path${c > 1 ? "s" : ""}`);
+  return `Map: ${parts.join(", ") || "save paths"}`;
+}
+
+async function saveGitHub() {
+  if (ghBusy) { ghAgain = true; return; }
+  ghBusy = true;
+  try {
+    for (let attempt = 0; ; attempt++) {
+      const sent = structuredClone(paths);
+      if (pathsText(sent) === pathsText(gh.base)) break;
+      try {
+        const j = await ghFetch(`/contents/${PATHS_FILE}`, { method: "PUT", body: JSON.stringify({
+          message: commitMessage(gh.base, sent), content: toB64(pathsText(sent)), sha: gh.sha, branch: "main" }) });
+        gh.sha = j.content.sha; gh.base = sent;
+        break;
+      } catch (err) {
+        if (![409, 422].includes(err.status) || attempt >= 4) throw err;
+        // A teammate saved first: put this browser's changes on top of theirs and try again.
+        const latest = await ghRead();
+        paths = merge(gh.base, paths, latest.features); gh.base = structuredClone(latest.features); gh.sha = latest.sha;
+        renderDrawn();
+      }
+    }
+    if (!ghAgain) {
+      saving = false;
+      setStatus("Saved. The public graph rebuilds in a few minutes."); statusTimer = setTimeout(() => setStatus(""), 4000);
+    }
+  } catch (err) {
+    setStatus(`Not saved: ${err.status === 401 ? "GitHub rejected the token; sign out and in again" : err.message}`, true);
+  } finally {
+    ghBusy = false;
+    if (ghAgain) { ghAgain = false; saveGitHub(); }
+  }
+}
+
+// Checks the token has write access, then switches the map to editing.
+async function signIn(token) {
+  gh = { token };
+  try {
+    const repo = await ghFetch("");
+    if (!repo.permissions?.push) throw new Error(`this GitHub account can't push to ${REPO}`);
+    const latest = await ghRead();
+    paths = latest.features; gh.base = structuredClone(paths); gh.sha = latest.sha;
+  } catch (err) {
+    gh = null;
+    if (err.status === 401) stored(null);
+    setStatus(`Not signed in: ${err.status === 401 ? "GitHub rejected the token" : err.message}`, true);
+    return false;
+  }
+  stored(token); editable = true;
+  $("signin").hidden = true; $("signout").hidden = $("draw").hidden = false;
+  renderDrawn(); setStatus("");
+  return true;
+}
+$("signin").onclick = () => { $("signin").hidden = true; $("tokenform").hidden = false; $("token").focus(); };
+$("tokencancel").onclick = () => { $("tokenform").hidden = true; $("signin").hidden = false; };
+$("tokenform").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const token = $("token").value.trim();
+  if (!token) return;
+  setStatus("Signing in…");
+  if (await signIn(token)) { $("tokenform").hidden = true; $("token").value = ""; }
+};
+$("signout").onclick = () => {
+  if (saving) return setStatus("Still saving; sign out once it finishes", true);
+  if (drawing) endDraw();
+  stored(null); gh = null; editable = false; selectedId = null;
+  $("signout").hidden = $("draw").hidden = true; $("signin").hidden = false;
+  renderDrawn();
+};
 
 // ---------- adding to the graph ----------
 let rebuilding = false, again = false, statusTimer = null;
@@ -294,7 +417,7 @@ map.on("mousemove", (ev) => {
 });
 map.on("click", (ev) => { if (drawing) addPoint(ev.latlng); else if (selectedId) select(null); });
 document.addEventListener("keydown", (ev) => {
-  if (!LIVE) return;
+  if (!editable || ev.target.tagName === "INPUT") return;
   if (drawing) {
     if (ev.key === "Enter") { ev.preventDefault(); finishDraw(); }
     else if (ev.key === "Escape") endDraw();
@@ -319,8 +442,12 @@ document.addEventListener("keydown", (ev) => {
   }
   map.fitBounds(L.latLngBounds(G.buildings.map((b) => [b[1], b[2]])), { padding: [30, 30] });
   if (!LIVE) {
+    // The copy in docs/ lags a save by the graph rebuild; signing in reads the file itself.
     paths = (await (await fetch("manual_paths.geojson", { cache: "no-store" })).json()).features;
-    return renderDrawn();
+    renderDrawn();
+    const token = stored();
+    if (!token || !(await signIn(token))) $("signin").hidden = false;
+    return;
   }
   $("draw").hidden = $("publish").hidden = false;
   const j = await (await fetch("api/paths", { cache: "no-store" })).json();
