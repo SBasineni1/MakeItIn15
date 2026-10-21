@@ -13,10 +13,12 @@ html, body { height: 100%; margin: 0; background: #2a2f2d; }
   border: 2px solid rgba(0,0,0,.25); background: #fff; color: #111; }
 .bar button[aria-pressed="true"] { background: var(--m-drawn); }
 .bar [hidden] { display: none !important; }
-.token { display: flex; gap: 6px; align-items: center; }
-.token input { font: 14px/1 system-ui, sans-serif; padding: 8px 10px; width: 18em; max-width: 45vw; border-radius: 6px;
+.bar button { white-space: nowrap; }
+.token { display: flex; flex: none; gap: 6px; align-items: center; }
+@media (max-width: 600px) { .token { flex: 1 1 auto; flex-wrap: wrap; min-width: 0; } }
+.token input { font: 14px/1 system-ui, sans-serif; padding: 8px 10px; flex: 0 1 18em; min-width: 8em; border-radius: 6px;
   border: 2px solid rgba(0,0,0,.25); }
-.token a { color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
+.token a { white-space: nowrap; color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
 .bar button:disabled { opacity: .6; cursor: progress; }
 .bar button:focus-visible { outline: 2px solid #2b8cff; outline-offset: 2px; }
 #status { color: #fff; text-shadow: 0 1px 3px #000, 0 0 2px #000; }
