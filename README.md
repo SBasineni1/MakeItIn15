@@ -89,6 +89,25 @@ midpoint to add one, Backspace deletes it. Every change saves to
 with `source = "manual"`. A drawn path's ends join the nearest path within
 15 m; a red dot marks an end that won't.
 
+### Doors and building interiors
+
+`network/fetch_doors.py FA26` downloads Cornell Facilities' public entrance
+inventory (2025: every surveyed exterior door, with type, access control, auto
+opener and main-entrance flag) and building footprints from
+`gis.fcs.cornell.edu` into `network/doors.geojson` and
+`network/footprints.geojson` (committed, so builds don't depend on that
+server). `build_graph.py` then adds each usable door, joined to the nearest
+path within 25 m (one way, outwards, for exit-only doors), and gives each
+building one hub at its footprint's centre with a corridor edge to every door.
+Walking through a building is therefore estimated as door → centre → door,
+with `source = "indoor_estimate"` and confidence 0.5; classes route to the hub
+of their building rather than to the nearest path. Utility, garage, loading and
+sealed doors are left out. The access codes (`Key All`, `Card`, `Key Night`,
+...) aren't documented, so they are kept on the edges as `door_access` for a
+routing profile to filter, not applied here. Where the estimate is wrong (wings
+that don't connect, buildings joined inside, floors), draw the real route in the
+editor.
+
 The map is public at https://sbasineni1.github.io/MakeItIn15/ (GitHub Pages
 serves `docs/`). Anyone can view it; repo collaborators can also draw there.
 **Sign in to edit** asks once for a GitHub token: **Get a token** opens a classic

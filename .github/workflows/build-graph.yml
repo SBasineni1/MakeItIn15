@@ -8,6 +8,8 @@ on:
     branches: [main]
     paths:
       - network/manual_paths.geojson
+      - network/doors.geojson
+      - network/footprints.geojson
       - network/build_graph.py
       - network/export_web.py
       - network/publish.py

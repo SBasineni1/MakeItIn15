@@ -9,6 +9,7 @@ cache/web_graph.json holds:
              one per walkable pair (the graph has both directions)
   attrs      [highway, surface, wheelchair, source], shared by many edges
   buildings  [name, lat, lng, node, snap m, routable meetings]
+  doors      [lat, lng, building, door type, access control, "in_out" or "out" (exit only)]
   detours    the 25 building pairs (at least 150 m apart) whose walk is
              longest relative to the straight line: [ratio, walk m, straight m, a, b]
 """
@@ -62,6 +63,8 @@ def write(G, term, out):
         edges.append([index[u], index[v], round(d["length"], 1), round(d["climb"], 1),
                       round(d["descent"], 1), attr_index[a], flat])
 
+    doors = [[round(d["y"], 6), round(d["x"], 6), d["building"], d["door_type"], d["door_access"], d["door_use"]]
+             for _, d in G.nodes(data=True) if d.get("door")]
     buildings = [[s["building"], *pins[s["building"]], index[int(s["node"])], float(s["snap_m"]),
                   count[s["building"]]] for s in snaps]
 
@@ -81,7 +84,7 @@ def write(G, term, out):
     out.write_text(json.dumps({
         "term": term,
         "built": time.time(),
-        "nodes": nodes, "edges": edges, "attrs": attrs, "buildings": buildings,
+        "nodes": nodes, "edges": edges, "attrs": attrs, "buildings": buildings, "doors": doors,
         "detours": pairs[:DETOURS_SHOWN],
         "stats": {"pairs": len(pairs), "median": statistics.median(ratios),
                   "p90": ratios[int(len(ratios) * 0.9)]},
