@@ -9,7 +9,7 @@
 const $ = (id) => document.getElementById(id);
 const token = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const COLOR = { flat: token("--m-flat"), mid: token("--m-mid"), high: token("--m-high"),
-  steps: token("--m-steps"), drawn: token("--m-drawn") };
+  steps: token("--m-steps"), drawn: token("--m-drawn"), indoor: token("--m-indoor"), door: token("--m-door") };
 const CASING = "#101614";
 const SNAP_PX = 12;     // a drawn point this close to a path (on screen) snaps onto it
 const END_JOIN_M = 15;  // build_graph.py joins a drawn path's ends to paths this close (END_SNAP_M)
@@ -40,7 +40,9 @@ const bases = {
 };
 bases["Aerial, Esri"].addTo(map);
 const netLayer = L.layerGroup().addTo(map), bldLayer = L.layerGroup().addTo(map), drawnLayer = L.layerGroup().addTo(map);
-L.control.layers(bases, { "Path network": netLayer, "Building pins": bldLayer, "Drawn paths": drawnLayer }).addTo(map);
+const indoorLayer = L.layerGroup().addTo(map), doorLayer = L.layerGroup().addTo(map);
+L.control.layers(bases, { "Path network": netLayer, "Inside buildings (estimated)": indoorLayer, "Doors": doorLayer,
+  "Building pins": bldLayer, "Drawn paths": drawnLayer }).addTo(map);
 L.control.scale({ imperial: false }).addTo(map);
 const snapRing = L.circleMarker([0, 0], { renderer: R.pins, radius: 8, color: "#fff", weight: 2.5, fill: false, interactive: false });
 
@@ -48,6 +50,7 @@ const snapRing = L.circleMarker([0, 0], { renderer: R.pins, radius: 8, color: "#
 let G = null, index = null, origin = null;
 const pairs = (g) => { const out = []; for (let i = 0; i < g.length; i += 2) out.push([g[i], g[i + 1]]); return out; };
 function edgeClass(e) {
+  if (G.attrs[e[5]][0] === "corridor") return "indoor";  // door to building centre, a guess (build_graph.add_doors)
   if (G.attrs[e[5]][0] === "steps") return "steps";
   if (e[2] < 8) return "flat";  // grades on short segments are mostly elevation noise
   const g = Math.max(e[3], e[4]) / e[2];
@@ -68,15 +71,20 @@ async function loadGraph() {
     const lng = G.buildings.reduce((s, b) => s + b[2], 0) / G.buildings.length;
     origin = { lat, lng, kx: 111320 * Math.cos(lat * Math.PI / 180) };
   }
-  buildIndex(); renderNetwork(); renderPins();
+  buildIndex(); renderNetwork(); renderPins(); renderDoors();
 }
 
 function renderNetwork() {
   netLayer.clearLayers();
-  const groups = { flat: [], mid: [], high: [], steps: [] }, all = [];
-  for (const e of G.edges) { const ll = pairs(e[6]); groups[edgeClass(e)].push(ll); all.push(ll); }
-  const line = (lls, color, weight, opacity = 1) =>
-    L.polyline(lls, { renderer: R.net, color, weight, opacity, interactive: false }).addTo(netLayer);
+  indoorLayer.clearLayers();
+  const groups = { flat: [], mid: [], high: [], steps: [], indoor: [] }, all = [];
+  for (const e of G.edges) {
+    const ll = pairs(e[6]), k = edgeClass(e);
+    groups[k].push(ll); if (k !== "indoor") all.push(ll);
+  }
+  const line = (lls, color, weight, opacity = 1, layer = netLayer, dashArray = null) =>
+    L.polyline(lls, { renderer: R.net, color, weight, opacity, dashArray, interactive: false }).addTo(layer);
+  line(groups.indoor, COLOR.indoor, 1.5, 0.8, indoorLayer, "4 4");
   line(all, CASING, 4.5, 0.55);
   line(groups.steps, CASING, 6.5, 0.6);
   for (const k of ["flat", "mid", "high"]) line(groups[k], COLOR[k], 2.5, 0.95);
@@ -91,6 +99,18 @@ function renderPins() {
       .bindTooltip(b[0], { direction: "top", offset: [0, -6] })
       .on("click", (ev) => drawing && addPoint(ev.latlng))
       .addTo(bldLayer);
+}
+
+// Surveyed doors in the graph (fetch_doors.py); exit-only ones are red.
+function renderDoors() {
+  doorLayer.clearLayers();
+  for (const [lat, lng, building, type, access, use] of G.doors || [])
+    L.circleMarker([lat, lng], { renderer: R.pins, radius: 3, color: CASING, weight: 1,
+      fillColor: use === "out" ? COLOR.high : COLOR.door, fillOpacity: 1, bubblingMouseEvents: false })
+      .bindTooltip(`${building}: ${type.toLowerCase()} door${use === "out" ? ", exit only" : ""}${access ? ` (${access})` : ""}`,
+        { direction: "top", offset: [0, -4] })
+      .on("click", (ev) => drawing && addPoint(ev.latlng))
+      .addTo(doorLayer);
 }
 
 // ---------- snapping ----------

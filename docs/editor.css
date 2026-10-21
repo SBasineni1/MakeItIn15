@@ -1,6 +1,7 @@
 :root {
   /* Map strokes sit on aerial imagery, so they stay bright. */
   --m-flat: #f4f4ee; --m-mid: #ffb020; --m-high: #ff4d3d; --m-steps: #c58cff; --m-drawn: #00e5c8;
+  --m-indoor: #8fd0ff; --m-door: #4fb3ff;
   font: 13px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 html, body { height: 100%; margin: 0; background: #2a2f2d; }
