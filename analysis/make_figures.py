@@ -1,7 +1,8 @@
 """Slide figures for the mid-semester presentation.
 
 Usage: <python with matplotlib, networkx, numpy> analysis/make_figures.py
-Reads data/FA26_meetings.csv and docs/graph.json; writes analysis/figures/*.png
+Reads data/FA26_meetings.csv, data/FA26_meetings_filtered.csv (scraper/filter_meetings.py:
+undergraduate, main campus, one row per weekly pattern) and docs/graph.json; writes analysis/figures/*.png
 (16:9, 2000x1125) and prints the numbers quoted on the slides.
 
 Walking time uses Tobler's hiking function on each edge's climb and descent
@@ -121,8 +122,9 @@ def save(fig, name):
 
 def load():
     rows = list(csv.DictReader(open(ROOT / "data/FA26_meetings.csv")))
+    filtered = list(csv.DictReader(open(ROOT / "data/FA26_meetings_filtered.csv")))
     g = json.load(open(ROOT / "docs/graph.json"))
-    return rows, g
+    return rows, filtered, g
 
 
 def tobler_s(length, climb, descent):
@@ -246,15 +248,16 @@ def fit_extent(extent, aspect):
 
 # ---------------------------------------------------------------- figures
 
-def fig_funnel(rows):
+def fig_funnel(rows, routable):
     unique = [r for r in rows if r["is_duplicate"] == "0"]
     in_person = [r for r in unique if r["instruction_mode"] == "P"]
-    routable = [r for r in unique if r["routable"] == "1"]
     stages = [
         ("All roster meeting rows", len(rows)),
         ("Unique meetings (cross-listings merged)", len(unique)),
         ("In person", len(in_person)),
-        ("Routable: Ithaca, timed, located", len(routable)),
+        ("Ithaca, timed, located", sum(r["routable"] == "1" for r in unique)),
+        ("Undergraduate", sum(r["routable"] == "1" and r["career"] == "UG" for r in unique)),
+        ("Main campus, one row per weekly pattern", len(routable)),
     ]
     real = sum(r["location_source"] == "roster" for r in routable)
     courses = len({(r["subject"], r["catalog_nbr"]) for r in routable})
@@ -343,7 +346,7 @@ def fig_gaps(ends, starts):
 def fig_buildings(routable):
     counts = Counter(r["building"] for r in routable).most_common(15)
     fig = figure("Where classes meet",
-                 f"Routable FA26 class meetings, top 15 of {len({r['building'] for r in routable})} buildings")
+                 f"Undergraduate FA26 class meetings on the main campus, top 15 of {len({r['building'] for r in routable})} buildings")
     ax = fig.add_axes([0.27, 0.10, 0.66, 0.70])
     y = np.arange(len(counts))[::-1]
     ax.barh(y, [n for _, n in counts], height=0.6, color=BLUE, linewidth=0)
@@ -567,14 +570,14 @@ def fig_flow_map(g, proj, bxy, T, flows):
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    rows, g = load()
-    routable = [r for r in rows if r["routable"] == "1"]
+    rows, routable, g = load()
     G, geom, elev = build_graph()
-    buildings = building_nodes()
+    used = {r["building"] for r in routable}
+    buildings = {b: v for b, v in building_nodes().items() if b in used}
     lat0 = statistics.median(b[1] for b in g["buildings"])
     lng0 = statistics.median(b[2] for b in g["buildings"])
     proj = Proj(lat0, lng0)
-    bxy = {b: proj(lat, lng) for b, lat, lng, *_ in g["buildings"]}
+    bxy = {b: proj(lat, lng) for b, lat, lng, *_ in g["buildings"] if b in used}
     T, D = walk_tables(G, buildings)
     ends, starts = sessions(routable)
     flows = Counter()
@@ -586,7 +589,7 @@ def main():
                     if (a, b) in T:
                         flows[a, b] += na * nb
 
-    fig_funnel(rows)
+    fig_funnel(rows, routable)
     fig_start_times(routable)
     fig_gaps(ends, starts)
     fig_buildings(routable)

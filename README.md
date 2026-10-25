@@ -58,6 +58,11 @@ reference term, most to least specific), or NULL.
   classes), and `routable` (1 = an in-person Ithaca meeting with a time and
   coordinates, not a duplicate and not at AgriTech in Geneva; filter
   `routable = 1` for walking analysis)
+- `data/FA26_meetings_filtered.csv` — `python3 scraper/filter_meetings.py FA26`:
+  the routable rows narrowed to undergraduate classes on the main campus
+  (within 1.6 km of its centre), with meetings the roster lists once per date
+  (e.g. PHYS 2207 labs) merged into one row per pattern; `n_dates` counts the
+  dates merged
 - `data/raw/FA26.db` — the same data as SQLite tables, below (git-ignored,
   rebuilt with the CSV)
 
